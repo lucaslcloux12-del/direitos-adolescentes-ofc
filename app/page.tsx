@@ -27,7 +27,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Busca */}
+          {/* Busca idêntica */}
           <div className="relative w-80">
             <input 
               type="text" 
@@ -47,10 +47,10 @@ export default function Home() {
 
       {/* CORPO DO SITE - EXATAMENTE IGUAL À SEGUNDA FOTO */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-0">
-        {/* Coluna esquerda azul (texto) */}
+        {/* Coluna esquerda azul */}
         <div className="lg:col-span-5 bg-[#003087] text-white p-12">
           <div className="text-sm opacity-70 mb-2">01 • DECLARAÇÃO</div>
-          <h1 className="text-4xl font-bold leading-tight mb-8">
+          <h1 className="text-5xl font-bold leading-tight mb-8">
             DECLARAÇÃO DOS DIREITOS<br />DOS ADOLESCENTES
           </h1>
           <p className="text-lg leading-relaxed opacity-90">
@@ -62,9 +62,10 @@ export default function Home() {
         </div>
 
         {/* Coluna central - Foto de adolescentes em desenho animado */}
-        <div className="lg:col-span-4 bg-cover bg-center" 
-             style={{ backgroundImage: "url('https://i.imgur.com/3fK8vL9.jpg')" }}>
-        </div>
+        <div 
+          className="lg:col-span-4 bg-cover bg-center min-h-[620px]"
+          style={{ backgroundImage: "url('https://i.imgur.com/3fK8vL9.jpg')" }}
+        />
 
         {/* Coluna direita - Últimas */}
         <div className="lg:col-span-3 bg-white p-8 border-l border-gray-200">
@@ -90,11 +91,11 @@ export default function Home() {
         💬
       </button>
 
-      {/* Chat (abrirá no próximo passo) */}
+      {/* Chat (pronto para o próximo passo) */}
       {showChat && (
         <div className="fixed bottom-28 left-8 w-96 h-[520px] bg-white border border-gray-300 rounded-3xl shadow-2xl flex flex-col">
           <div className="p-4 bg-[#003087] text-white">Chat da Equipe 3</div>
-          <div className="flex-1 p-4 overflow-auto bg-gray-50">Chat em tempo real será implementado no próximo passo.</div>
+          <div className="flex-1 p-4 overflow-auto bg-gray-50 text-sm">Chat em tempo real será implementado no próximo passo.</div>
         </div>
       )}
     </div>
