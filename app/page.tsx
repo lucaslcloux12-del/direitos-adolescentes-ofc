@@ -13,7 +13,7 @@ export default function Home() {
       {/* TOP BAR - EXATAMENTE IGUAL À PRIMEIRA FOTO */}
       <header className="bg-[#003087] text-white py-3 px-6 flex items-center justify-between border-b-4 border-[#00a1e7]">
         <div className="flex items-center gap-8">
-          <a href="/" className="text-3xl">🏠</a>
+          <a href="/" className="text-3xl">🏠o</a>
           <span className="font-medium">Bem-vindo à Declaração dos Direitos dos Adolescentes</span>
         </div>
 
