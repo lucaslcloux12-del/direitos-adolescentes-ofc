@@ -1,103 +1,234 @@
-"use client";
-import { useState } from "react";
-import { auth, googleProvider } from "@/lib/firebase";
-import { signInWithPopup } from "firebase/auth";
+// js/app.js
+import { ref, onValue, set, push } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+import { auth } from "./firebase.js";
+import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 
-export default function Home() {
-  const [showChat, setShowChat] = useState(false);
+let direitos = [];
+let isEditing = false;
 
-  const loginGoogle = () => signInWithPopup(auth, googleProvider);
+// Elementos DOM
+const direitosContainer = document.getElementById('direitosContainer');
+const editBtn = document.getElementById('editBtn');
+const userEmailEl = document.getElementById('userEmail');
+const logoutBtn = document.getElementById('logoutBtn');
+const modalLogin = document.getElementById('modalLogin');
+const chatMessages = document.getElementById('chatMessages');
 
-  return (
-    <div className="min-h-screen bg-white text-[#222]">
-      {/* TOP BAR - EXATAMENTE IGUAL À PRIMEIRA FOTO */}
-      <header className="bg-[#003087] text-white py-3 px-6 flex items-center justify-between border-b-4 border-[#00a1e7]">
-        <div className="flex items-center gap-8">
-          <a href="/" className="text-3xl">🏠o</a>
-          <span className="font-medium">Bem-vindo à Declaração dos Direitos dos Adolescentes</span>
-        </div>
+// Monitorar login com Google
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    if (user.email === "lucaslcloux12@gmail.com") {
+      isEditing = true;
+      userEmailEl.classList.remove('hidden');
+      userEmailEl.textContent = user.email.split('@')[0] + "...@gmail.com";
+      logoutBtn.classList.remove('hidden');
+      editBtn.classList.remove('hidden');
+      renderDireitos();
+    } else {
+      alert("Acesso negado.\n\nSomente lucaslcloux12@gmail.com pode editar.");
+      signOut(auth);
+    }
+  } else {
+    isEditing = false;
+    editBtn.classList.add('hidden');
+    userEmailEl.classList.add('hidden');
+    logoutBtn.classList.add('hidden');
+  }
+});
 
-        <div className="flex items-center gap-8">
-          {/* Logo ONU Brasil */}
-          <div className="flex items-center gap-2">
-            <img src="https://brasil.un.org/themes/custom/undp/assets/logo-onu-brasil.svg" alt="ONU Brasil" className="h-10" />
-            <div>
-              <span className="text-xs tracking-widest">NAÇÕES UNIDAS</span><br />
-              <span className="font-bold">Brasil</span>
-            </div>
-          </div>
+// ==================== LOGIN COM GOOGLE ====================
+window.mostrarModalLogin = () => modalLogin.classList.remove('hidden');
+window.fecharModalLogin = () => modalLogin.classList.add('hidden');
 
-          {/* Busca idêntica */}
-          <div className="relative w-80">
-            <input 
-              type="text" 
-              placeholder="Encontre dados, recursos, notícias e mais" 
-              className="bg-white text-black px-5 py-2 rounded-full w-full text-sm focus:outline-none border border-gray-300"
-            />
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#00a1e7] text-white w-8 h-8 rounded-full flex items-center justify-center">
-              🔎
-            </button>
-          </div>
+window.loginComGoogle = async () => {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
 
-          <button onClick={loginGoogle} className="bg-white text-[#003087] px-6 py-2 rounded-full text-sm font-medium">
-            Entrar com Google
-          </button>
-        </div>
-      </header>
+  try {
+    await signInWithPopup(auth, provider);
+    fecharModalLogin();
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao fazer login: " + error.message);
+  }
+};
 
-      {/* CORPO DO SITE - EXATAMENTE IGUAL À SEGUNDA FOTO */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-0">
-        {/* Coluna esquerda azul */}
-        <div className="lg:col-span-5 bg-[#003087] text-white p-12">
-          <div className="text-sm opacity-70 mb-2">01 • DECLARAÇÃO</div>
-          <h1 className="text-5xl font-bold leading-tight mb-8">
-            DECLARAÇÃO DOS DIREITOS<br />DOS ADOLESCENTES
-          </h1>
-          <p className="text-lg leading-relaxed opacity-90">
-            Todo adolescente tem direito a ser ouvido, protegido, educado e respeitado em todas as decisões que afetam sua vida.
-          </p>
-          <button className="mt-12 bg-white text-[#003087] px-8 py-4 rounded-full font-medium flex items-center gap-2">
-            Ler a Declaração Completa →
-          </button>
-        </div>
+window.logout = () => signOut(auth);
 
-        {/* Coluna central - Foto de adolescentes em desenho animado */}
-        <div 
-          className="lg:col-span-4 bg-cover bg-center min-h-[620px]"
-          style={{ backgroundImage: "url('https://i.imgur.com/3fK8vL9.jpg')" }}
-        />
+// ==================== EDIÇÃO DE TÓPICOS ====================
+function renderDireitos() {
+  direitosContainer.innerHTML = '';
 
-        {/* Coluna direita - Últimas */}
-        <div className="lg:col-span-3 bg-white p-8 border-l border-gray-200">
-          <h3 className="font-semibold text-xl mb-6 text-[#003087]">Últimas Atualizações</h3>
-          <div className="space-y-8 text-sm">
-            <div>
-              <span className="text-gray-500">09 abril 2026</span>
-              <p className="font-medium mt-1">Campanha “Adolescentes pela Igualdade” chega a 5 estados</p>
-            </div>
-            <div>
-              <span className="text-gray-500">08 abril 2026</span>
-              <p className="font-medium mt-1">Novo projeto de lei garante voz dos adolescentes no Congresso</p>
-            </div>
-          </div>
-        </div>
+  direitos.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = `topic-card bg-white border border-gray-200 rounded-3xl p-10 shadow-sm`;
+    div.innerHTML = `
+      <div class="flex justify-between items-center mb-6">
+        <input type="text" value="${item.titulo}" 
+               class="text-3xl font-bold bg-transparent border-b-2 border-transparent focus:border-blue-500 outline-none w-full transition-all ${isEditing ? '' : 'pointer-events-none'}"
+               onchange="window.atualizarTitulo(${index}, this.value)">
+        
+        ${isEditing ? `<button onclick="window.removerTopico(${index})" class="text-red-500 hover:text-red-700 p-3"><i class="fa-solid fa-trash-can text-xl"></i></button>` : ''}
       </div>
 
-      {/* BOTÃO DE CHAT - CÍRCULO AZUL NO CANTO INFERIOR ESQUERDO (gira 180°) */}
-      <button
-        onClick={() => setShowChat(!showChat)}
-        className={`fixed bottom-8 left-8 w-16 h-16 bg-[#003087] rounded-full flex items-center justify-center shadow-2xl transition-transform duration-700 hover:scale-110 ${showChat ? 'rotate-180' : ''}`}
-      >
-        💬
-      </button>
-
-      {/* Chat (pronto para o próximo passo) */}
-      {showChat && (
-        <div className="fixed bottom-28 left-8 w-96 h-[520px] bg-white border border-gray-300 rounded-3xl shadow-2xl flex flex-col">
-          <div className="p-4 bg-[#003087] text-white">Chat da Equipe 3</div>
-          <div className="flex-1 p-4 overflow-auto bg-gray-50 text-sm">Chat em tempo real será implementado no próximo passo.</div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div class="lg:col-span-7">
+          <textarea rows="7" 
+                    class="w-full border border-gray-300 rounded-2xl p-6 text-base leading-relaxed focus:border-blue-500 outline-none resize-y ${isEditing ? '' : 'pointer-events-none bg-gray-50'}"
+                    onchange="window.atualizarTexto(${index}, this.value)">${item.texto}</textarea>
         </div>
-      )}
-    </div>
-  );
+        <div class="lg:col-span-5">
+          <div class="text-sm text-gray-500 mb-3 font-medium">Link da Imagem</div>
+          <input type="text" value="${item.imagem || ''}" placeholder="https://exemplo.com/imagem.jpg"
+                 class="w-full border border-gray-300 rounded-2xl px-5 py-4 text-sm focus:border-blue-500 outline-none ${isEditing ? '' : 'pointer-events-none bg-gray-50'}"
+                 onchange="window.atualizarImagem(${index}, this.value)">
+          
+          ${item.imagem ? 
+            `<img src="${item.imagem}" class="mt-6 w-full h-64 object-cover rounded-2xl shadow-md">` : 
+            `<div class="mt-6 h-64 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-400 text-sm">Nenhuma imagem adicionada</div>`
+          }
+        </div>
+      </div>
+    `;
+    direitosContainer.appendChild(div);
+  });
+
+  if (isEditing) {
+    const addBtn = document.createElement('button');
+    addBtn.className = "mt-20 mx-auto block bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-5 rounded-3xl transition-all flex items-center gap-3";
+    addBtn.innerHTML = `<i class="fa-solid fa-circle-plus text-2xl"></i> Adicionar Novo Tópico`;
+    addBtn.onclick = window.adicionarTopico;
+    direitosContainer.appendChild(addBtn);
+  }
 }
+
+window.atualizarTitulo = (index, valor) => { direitos[index].titulo = valor; salvarNoFirebase(); };
+window.atualizarTexto = (index, valor) => { direitos[index].texto = valor; salvarNoFirebase(); };
+window.atualizarImagem = (index, valor) => { direitos[index].imagem = valor; salvarNoFirebase(); renderDireitos(); };
+
+window.adicionarTopico = () => {
+  direitos.push({
+    titulo: "Novo Direito do Adolescente",
+    texto: "Descreva aqui o direito...",
+    imagem: ""
+  });
+  renderDireitos();
+  salvarNoFirebase();
+};
+
+window.removerTopico = (index) => {
+  if (confirm("Remover este tópico permanentemente?")) {
+    direitos.splice(index, 1);
+    renderDireitos();
+    salvarNoFirebase();
+  }
+};
+
+function salvarNoFirebase() {
+  set(ref(window.db, 'direitosAdolescentes'), direitos);
+}
+
+function carregarDireitos() {
+  onValue(ref(window.db, 'direitosAdolescentes'), (snapshot) => {
+    const data = snapshot.val();
+    direitos = data || criar30TopicosIniciais();
+    renderDireitos();
+  });
+}
+
+function criar30TopicosIniciais() {
+  return [
+    { titulo: "1. Direito à Vida, Sobrevivência e Desenvolvimento", texto: "Todo adolescente tem direito à vida, à sobrevivência e ao desenvolvimento pleno em condições dignas.", imagem: "https://picsum.photos/id/1015/800/450" },
+    { titulo: "2. Direito à Educação de Qualidade", texto: "Acesso a uma educação inclusiva, equitativa e de qualidade que prepare para a vida adulta.", imagem: "https://picsum.photos/id/201/800/450" },
+    { titulo: "3. Direito à Saúde Integral", texto: "Acesso universal a serviços de saúde física, mental e sexual e reprodutiva de qualidade.", imagem: "" },
+    { titulo: "4. Direito à Proteção contra Violência", texto: "Proteção contra todas as formas de violência física, psicológica, sexual e digital.", imagem: "https://picsum.photos/id/237/800/450" },
+    { titulo: "5. Direito à Participação", texto: "Ser ouvido e participar das decisões que afetam sua vida, família e comunidade.", imagem: "" },
+    { titulo: "6. Direito à Liberdade de Expressão", texto: "Expressar suas opiniões, ideias e sentimentos de forma livre e responsável.", imagem: "https://picsum.photos/id/133/800/450" },
+    { titulo: "7. Direito à Não Discriminação", texto: "Ser tratado com igualdade, independentemente de raça, gênero, orientação sexual, deficiência ou origem.", imagem: "" },
+    { titulo: "8. Direito ao Lazer e Cultura", texto: "Acesso a atividades culturais, esportivas e de lazer que promovam seu desenvolvimento.", imagem: "https://picsum.photos/id/180/800/450" },
+    { titulo: "9. Direito à Proteção no Ambiente Digital", texto: "Segurança online, privacidade e proteção contra bullying e exploração na internet.", imagem: "" },
+    { titulo: "10. Direito à Alimentação Adequada", texto: "Acesso a alimentos nutritivos e suficientes para um crescimento saudável.", imagem: "https://picsum.photos/id/292/800/450" },
+    // ... (os outros 20 tópicos continuam abaixo para não ficar muito longo)
+    { titulo: "11. Direito ao Trabalho Protegido", texto: "Proteção contra trabalho infantil e exploração, com direito a condições justas se for maior de 16 anos.", imagem: "" },
+    { titulo: "12. Direito à Identidade e Nome", texto: "Ter seu nome, nacionalidade e identidade respeitados e registrados.", imagem: "" },
+    { titulo: "13. Direito à Família e Convívio", texto: "Conviver com a família ou em ambiente que garanta afeto e proteção.", imagem: "" },
+    { titulo: "14. Direito à Moradia Digna", texto: "Viver em um ambiente seguro, adequado e saudável.", imagem: "https://picsum.photos/id/316/800/450" },
+    { titulo: "15. Direito à Justiça e Devido Processo", texto: "Ser tratado com justiça e ter direitos garantidos no sistema judicial.", imagem: "" },
+    { titulo: "16. Direito ao Esporte e Atividade Física", texto: "Praticar esportes e atividades físicas em ambiente seguro.", imagem: "" },
+    { titulo: "17. Direito à Orientação Profissional", texto: "Receber orientação para escolher seu futuro profissional.", imagem: "" },
+    { titulo: "18. Direito à Liberdade Religiosa", texto: "Praticar ou não praticar sua religião sem sofrer discriminação.", imagem: "" },
+    { titulo: "19. Direito à Proteção Ambiental", texto: "Viver em um ambiente equilibrado e participar de ações de preservação.", imagem: "" },
+    { titulo: "20. Direito ao Acesso à Informação", texto: "Ter acesso a informações claras sobre seus direitos e oportunidades.", imagem: "" },
+    { titulo: "21. Direito à Saúde Mental", texto: "Acesso a suporte psicológico e emocional quando necessário.", imagem: "https://picsum.photos/id/201/800/450" },
+    { titulo: "22. Direito à Igualdade de Gênero", texto: "Ser tratado com igualdade independentemente do gênero.", imagem: "" },
+    { titulo: "23. Direito à Inclusão de Pessoas com Deficiência", texto: "Acesso a todas as oportunidades sem barreiras.", imagem: "" },
+    { titulo: "24. Direito ao Descanso e Férias", texto: "Ter tempo para descanso, brincar e se divertir.", imagem: "" },
+    { titulo: "25. Direito à Proteção contra Exploração", texto: "Proteção contra qualquer forma de exploração sexual ou laboral.", imagem: "" },
+    { titulo: "26. Direito à Cidadania Ativa", texto: "Participar da vida cidadã e contribuir com a sociedade.", imagem: "" },
+    { titulo: "27. Direito ao Respeito à Diversidade", texto: "Ter sua cultura, crenças e identidade respeitadas.", imagem: "" },
+    { titulo: "28. Direito à Orientação Sexual e Afetiva", texto: "Ser respeitado em sua orientação sexual sem sofrer preconceito.", imagem: "" },
+    { titulo: "29. Direito à Transição Segura para a Vida Adulta", texto: "Receber apoio para a transição da adolescência para a vida adulta.", imagem: "" },
+    { titulo: "30. Direito a Sonhar e Realizar", texto: "Ter o direito de sonhar, planejar e construir um futuro melhor.", imagem: "https://picsum.photos/id/1015/800/450" }
+  ];
+}
+
+// ==================== CHAT EM TEMPO REAL ====================
+const chatRef = ref(window.db, 'chatMensagens');
+
+onValue(chatRef, (snapshot) => {
+  const mensagens = snapshot.val() || {};
+  chatMessages.innerHTML = '';
+  
+  Object.values(mensagens).forEach(msg => {
+    const div = document.createElement('div');
+    div.className = msg.email === "lucaslcloux12@gmail.com" ? "flex justify-end" : "flex justify-start";
+    div.innerHTML = `
+      <div class="${msg.email === "lucaslcloux12@gmail.com" ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'} px-5 py-3 rounded-3xl max-w-[80%] rounded-tr-none">
+        <small class="opacity-75 block text-xs">${msg.nome}</small>
+        ${msg.texto}
+      </div>
+    `;
+    chatMessages.appendChild(div);
+  });
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+window.enviarMensagem = () => {
+  const input = document.getElementById('chatInput');
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Faça login para enviar mensagens no chat.");
+    return;
+  }
+
+  push(chatRef, {
+    texto: texto,
+    nome: user.email.split('@')[0],
+    email: user.email,
+    timestamp: Date.now()
+  });
+
+  input.value = '';
+};
+
+window.toggleChat = () => {
+  const bubble = document.getElementById('chatBubble');
+  const windowEl = document.getElementById('chatWindow');
+  windowEl.classList.toggle('hidden');
+  bubble.classList.toggle('rotated');
+};
+
+// Busca
+window.realizarBusca = () => {
+  const termo = document.getElementById('searchInput').value.trim();
+  if (termo) alert(`🔍 Buscando "${termo}" nos direitos dos adolescentes...`);
+};
+
+// Inicialização
+window.onload = () => {
+  carregarDireitos();
+  console.log("%c✅ Passo 5 concluído - 30 tópicos + Chat em tempo real + Login Google", "color:#009edb; font-size:18px; font-weight:bold");
+};
